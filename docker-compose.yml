@@ -9,7 +9,6 @@ services:
       - .env
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-<<<<<<< HEAD
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}
       - TEMPLATE_PATH=/app/documents/template_report.docx
@@ -37,7 +36,3 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-=======
-      - OPENAI_API_KEY=${ANTHROPIC_API_KEY}
-      - OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}
->>>>>>> origin/main
