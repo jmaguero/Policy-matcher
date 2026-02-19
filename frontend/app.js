@@ -56,52 +56,52 @@ Reageer ALLEEN met geldige JSON in dit exacte formaat:
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
-const button1FormSchema = z.object({
+const analysisFormSchema = z.object({
   client_name: z.string().min(1, 'Client name is required'),
   system_prompt1: z.string().min(1, 'System prompt cannot be empty'),
   selected_provider1: z.enum(PROVIDERS, { message: 'Invalid provider' }),
   selected_llm1: z.string().min(1, 'Model must be selected'),
 });
 
-const button2FormSchema = z.object({
+const rewriteFormSchema = z.object({
   system_prompt2: z.string().min(1, 'System prompt cannot be empty'),
   selected_provider2: z.enum(PROVIDERS, { message: 'Invalid provider' }),
   selected_llm2: z.string().min(1, 'Model must be selected'),
-  input_xlsx_filename: z.string().min(1, 'No output from Button 1 found — run Step 2 first'),
+  input_xlsx_filename: z.string().min(1, 'No output from Analysis found — run Step 2 first'),
 });
 
-const button1ResultItemSchema = z.object({
+const analysisResultItemSchema = z.object({
   id: z.union([z.string(), z.number()]),
   match: z.enum(['yes', 'no', 'partial']),
   if_yes_reason: z.string(),
   suggestions: z.string(),
 });
 
-const button1ResponseSchema = z.object({
+const analysisResponseSchema = z.object({
   json_file: z.string(),
   xlsx_file: z.string(),
-  results: z.array(button1ResultItemSchema),
+  results: z.array(analysisResultItemSchema),
 });
 
-const button2ResultItemSchema = z.object({
+const rewriteResultItemSchema = z.object({
   id: z.union([z.string(), z.number()]),
   rewritten_suggestions: z.array(z.string()),
 });
 
-const button2ResponseSchema = z.object({
+const rewriteResponseSchema = z.object({
   json_file: z.string(),
   xlsx_file: z.string(),
-  results: z.array(button2ResultItemSchema),
+  results: z.array(rewriteResultItemSchema),
 });
 
-const button3FormSchema = z.object({
-  input_xlsx_filename: z.string().min(1, 'No output from Button 2 found — run Step 3 first'),
+const reportFormSchema = z.object({
+  input_xlsx_filename: z.string().min(1, 'No output from Rewrite found — run Step 2 first'),
 });
 
 // ── App state ─────────────────────────────────────────────────────────────────
 
-let button1XlsxFile = null;
-let button2XlsxFile = null;
+let analysisXlsxFile = null;
+let rewriteXlsxFile = null;
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
 
@@ -141,20 +141,20 @@ function onLanguageChange() {
 
 // ── Button 1 ──────────────────────────────────────────────────────────────────
 
-async function runButton1() {
+async function runAnalysis() {
   const xlsxFile = document.getElementById('xlsx_file').files[0];
-  const pdfFile  = document.getElementById('pdf_file').files[0];
+  const pdfFile = document.getElementById('pdf_file').files[0];
 
   // File presence checks (File objects cannot be validated by Zod)
   if (!xlsxFile) return showStatus('status1', 'error', 'Please upload a standard .xlsx file.');
-  if (!pdfFile)  return showStatus('status1', 'error', 'Please upload a client document (.pdf).');
+  if (!pdfFile) return showStatus('status1', 'error', 'Please upload a client document (.pdf).');
 
   // Zod validation for text fields
-  const parse = button1FormSchema.safeParse({
-    client_name:       document.getElementById('client_name').value.trim(),
-    system_prompt1:    document.getElementById('system_prompt1').value.trim(),
+  const parse = analysisFormSchema.safeParse({
+    client_name: document.getElementById('client_name').value.trim(),
+    system_prompt1: document.getElementById('system_prompt1').value.trim(),
     selected_provider1: document.getElementById('provider1').value,
-    selected_llm1:     document.getElementById('model1').value,
+    selected_llm1: document.getElementById('model1').value,
   });
 
   if (!parse.success) {
@@ -168,27 +168,31 @@ async function runButton1() {
   setBtn('btn1', true, 'Processing…');
 
   const form = new FormData();
-  form.append('pdf_file',          pdfFile);
-  form.append('xlsx_file',         xlsxFile);
-  form.append('client_name',       client_name);
-  form.append('system_prompt1',    system_prompt1);
+  form.append('pdf_file', pdfFile);
+  form.append('xlsx_file', xlsxFile);
+  form.append('client_name', client_name);
+  form.append('system_prompt1', system_prompt1);
   form.append('selected_provider1', selected_provider1);
-  form.append('selected_llm1',     selected_llm1);
+  form.append('selected_llm1', selected_llm1);
 
   try {
-    const resp = await fetch('/process/button1', { method: 'POST', body: form });
-    const raw  = await resp.json();
-    if (!resp.ok) throw new Error(raw.detail || `HTTP ${resp.status}`);
+    const resp = await fetch('/process/analyze', { method: 'POST', body: form });
+    if (!resp.ok) {
+      let detail = `HTTP ${resp.status}`;
+      try { detail = (await resp.json()).detail || detail; } catch { }
+      throw new Error(detail);
+    }
+    const raw = await resp.json();
 
     // Validate API response shape
-    const responseParseResult = button1ResponseSchema.safeParse(raw);
+    const responseParseResult = analysisResponseSchema.safeParse(raw);
     if (!responseParseResult.success) {
       const errs = responseParseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
       throw new Error(`Unexpected response shape — ${errs}`);
     }
 
     const data = responseParseResult.data;
-    button1XlsxFile = data.xlsx_file;
+    analysisXlsxFile = data.xlsx_file;
     setBtn('btn2', false);
 
     const rows = data.results;
@@ -221,12 +225,12 @@ async function runButton1() {
 
 // ── Button 2 ──────────────────────────────────────────────────────────────────
 
-async function runButton2() {
-  const parse = button2FormSchema.safeParse({
-    system_prompt2:    document.getElementById('system_prompt2').value.trim(),
+async function runRewrite() {
+  const parse = rewriteFormSchema.safeParse({
+    system_prompt2: document.getElementById('system_prompt2').value.trim(),
     selected_provider2: document.getElementById('provider2').value,
-    selected_llm2:     document.getElementById('model2').value,
-    input_xlsx_filename: button1XlsxFile || '',
+    selected_llm2: document.getElementById('model2').value,
+    input_xlsx_filename: analysisXlsxFile || '',
   });
 
   if (!parse.success) {
@@ -241,23 +245,27 @@ async function runButton2() {
 
   const form = new FormData();
   form.append('input_xlsx_filename', input_xlsx_filename);
-  form.append('system_prompt2',      system_prompt2);
-  form.append('selected_provider2',  selected_provider2);
-  form.append('selected_llm2',       selected_llm2);
+  form.append('system_prompt2', system_prompt2);
+  form.append('selected_provider2', selected_provider2);
+  form.append('selected_llm2', selected_llm2);
 
   try {
-    const resp = await fetch('/process/button2', { method: 'POST', body: form });
-    const raw  = await resp.json();
-    if (!resp.ok) throw new Error(raw.detail || `HTTP ${resp.status}`);
+    const resp = await fetch('/process/rewrite', { method: 'POST', body: form });
+    if (!resp.ok) {
+      let detail = `HTTP ${resp.status}`;
+      try { detail = (await resp.json()).detail || detail; } catch { }
+      throw new Error(detail);
+    }
+    const raw = await resp.json();
 
-    const responseParseResult = button2ResponseSchema.safeParse(raw);
+    const responseParseResult = rewriteResponseSchema.safeParse(raw);
     if (!responseParseResult.success) {
       const errs = responseParseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
       throw new Error(`Unexpected response shape — ${errs}`);
     }
 
     const data = responseParseResult.data;
-    button2XlsxFile = data.xlsx_file;
+    rewriteXlsxFile = data.xlsx_file;
     setBtn('btn3', false);
 
     const rows = data.results;
@@ -293,17 +301,38 @@ async function runButton2() {
 
 // ── Button 3 ──────────────────────────────────────────────────────────────────
 
-async function runButton3() {
+async function runReport() {
+  const parse = reportFormSchema.safeParse({
+    input_xlsx_filename: rewriteXlsxFile || '',
+  });
+
+  if (!parse.success) {
+    const msg = parse.error.errors.map(e => e.message).join('<br/>');
+    return showStatus('status3', 'error', msg);
+  }
+
+  const { input_xlsx_filename } = parse.data;
+
   showStatus('status3', 'loading', '⏳ Generating report&hellip;');
   setBtn('btn3', true, 'Processing…');
 
+  const form = new FormData();
+  form.append('input_xlsx_filename', input_xlsx_filename);
+
   try {
-    const resp = await fetch('/process/button3', { method: 'POST' });
-    const raw  = await resp.json();
-    if (!resp.ok) throw new Error(raw.detail || `HTTP ${resp.status}`);
+    const resp = await fetch('/process/report', { method: 'POST', body: form });
+    if (!resp.ok) {
+      let detail = `HTTP ${resp.status}`;
+      try { detail = (await resp.json()).detail || detail; } catch { }
+      throw new Error(detail);
+    }
+    const raw = await resp.json();
 
     const docxFile = raw.docx_file ? ` — <code>${escHtml(raw.docx_file)}</code>` : '';
-    showStatus('status3', 'success', `<strong>Report generated!</strong>${docxFile}`);
+    const downloadHtml = raw.docx_file
+      ? `<br/><br/><a href="/download/${encodeURIComponent(raw.docx_file)}" class="btn btn-success" target="_blank">Download Report</a>`
+      : '';
+    showStatus('status3', 'success', `<strong>Report generated!</strong>${docxFile}${downloadHtml}`);
   } catch (err) {
     showStatus('status3', 'error', `<strong>Error:</strong> ${escHtml(err.message)}`);
   } finally {

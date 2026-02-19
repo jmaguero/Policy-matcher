@@ -1,5 +1,5 @@
 import json
-import re
+
 from datetime import datetime
 from pathlib import Path
 
@@ -19,7 +19,9 @@ def _read_xlsx_rows(xlsx_path: Path) -> list[dict]:
     wb = openpyxl.load_workbook(xlsx_path)
     ws = wb.active
     headers = [cell.value for cell in ws[1]]
-    return [dict(zip(headers, row)) for row in ws.iter_rows(min_row=2, values_only=True)]
+    return [
+        dict(zip(headers, row)) for row in ws.iter_rows(min_row=2, values_only=True)
+    ]
 
 
 def _build_user_prompt(row: dict) -> str:
@@ -60,7 +62,7 @@ def _validate_llm_output(result: dict) -> list[str]:
     return [str(item)[:MAX_SUGGESTION_CHARS] for item in rewritten]
 
 
-def run_button2(
+def rewrite_suggestions(
     input_xlsx_filename: str,
     system_prompt: str,
     provider: str,
@@ -77,11 +79,13 @@ def run_button2(
         suggestions = (row.get("suggestions") or "").strip()
 
         if not suggestions:
-            results.append({
-                "id": row_id,
-                "rewritten_suggestions": [],
-                "selected_llm2": model,
-            })
+            results.append(
+                {
+                    "id": row_id,
+                    "rewritten_suggestions": [],
+                    "selected_llm2": model,
+                }
+            )
             continue
 
         user_prompt = _build_user_prompt(row)
@@ -93,11 +97,13 @@ def run_button2(
             required_keys=REQUIRED_KEYS,
         )
         rewritten = _validate_llm_output(llm_result)
-        results.append({
-            "id": row_id,
-            "rewritten_suggestions": rewritten,
-            "selected_llm2": model,
-        })
+        results.append(
+            {
+                "id": row_id,
+                "rewritten_suggestions": rewritten,
+                "selected_llm2": model,
+            }
+        )
 
     # Carry the client+standard part forward from the input filename.
     # Input stem format: <YYYYMMDD>_<HHMMSS>_<client>_<standard>

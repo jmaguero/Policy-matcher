@@ -1,9 +1,14 @@
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from button1 import MAX_PDF_BYTES, run_button1
-from button2 import run_button2
-from button3 import run_button3
+from analysis import MAX_PDF_BYTES, analyze_policy
+from rewrite import rewrite_suggestions
+from report import generate_report
+
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+OUTPUTS_DIR = Path(__file__).parent / "outputs"
 
 app = FastAPI()
 
@@ -29,8 +34,8 @@ async def _read_limited(upload: UploadFile, max_bytes: int, label: str) -> bytes
     return data
 
 
-@app.post("/process/button1")
-async def button1(
+@app.post("/process/analyze")
+async def analyze_endpoint(
     pdf_file: UploadFile = File(...),
     xlsx_file: UploadFile = File(...),
     client_name: str = Form(...),
@@ -38,7 +43,7 @@ async def button1(
     selected_provider1: str = Form(...),
     selected_llm1: str = Form(...),
 ):
-    # Validate XLSX by extension (magic-byte check happens inside button1 via openpyxl)
+    # Validate XLSX by extension (magic-byte check happens inside openpyxl)
     if not (xlsx_file.filename or "").endswith(".xlsx"):
         raise HTTPException(status_code=400, detail="xlsx_file must be an .xlsx file")
 
@@ -47,7 +52,7 @@ async def button1(
     xlsx_bytes = await _read_limited(xlsx_file, MAX_XLSX_BYTES, "XLSX")
 
     try:
-        result = run_button1(
+        result = analyze_policy(
             pdf_bytes=pdf_bytes,
             xlsx_bytes=xlsx_bytes,
             xlsx_filename=xlsx_file.filename,
@@ -56,36 +61,65 @@ async def button1(
             provider=selected_provider1,
             model=selected_llm1,
         )
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, FileNotFoundError, RuntimeError) as e:
+        print(f"ERROR in analyze_endpoint: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     return result
 
 
-@app.post("/process/button2")
-async def button2(
+@app.post("/process/rewrite")
+async def rewrite_endpoint(
     input_xlsx_filename: str = Form(...),
     system_prompt2: str = Form(...),
     selected_provider2: str = Form(...),
     selected_llm2: str = Form(...),
 ):
     try:
-        result = run_button2(
+        result = rewrite_suggestions(
             input_xlsx_filename=input_xlsx_filename,
             system_prompt=system_prompt2,
             provider=selected_provider2,
             model=selected_llm2,
         )
-    except (ValueError, FileNotFoundError) as e:
+    except (ValueError, FileNotFoundError, RuntimeError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result
 
 
-@app.post("/process/button3")
-async def button3(
+@app.post("/process/report")
+async def report_endpoint(
     input_xlsx_filename: str = Form(...),
 ):
     try:
-        result = run_button3(input_xlsx_filename=input_xlsx_filename)
+        result = generate_report(input_xlsx_filename=input_xlsx_filename)
     except (ValueError, FileNotFoundError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result
+
+
+@app.get("/download/{filename}")
+async def download_file(filename: str):
+    # Security: Prevent path traversal
+    safe_path = (OUTPUTS_DIR / filename).resolve()
+    if not safe_path.is_relative_to(OUTPUTS_DIR.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    if not safe_path.exists() or not safe_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        path=safe_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+
+
+# Serve frontend static files (for local dev or simple deployment)
+# This must be after API routes so it doesn't shadow them.
+frontend_path = Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount(
+        "/", StaticFiles(directory=str(frontend_path), html=True), name="frontend"
+    )

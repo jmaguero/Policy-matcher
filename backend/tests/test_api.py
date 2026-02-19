@@ -57,9 +57,9 @@ _B3_FORM = dict(input_xlsx_filename="20240101_120000_Acme_SOC2.xlsx")
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("path", [
-    "/process/button1",
-    "/process/button2",
-    "/process/button3",
+    "/process/analyze",
+    "/process/rewrite",
+    "/process/report",
 ])
 def test_endpoints_reject_get(path):
     r = client.get(path)
@@ -71,9 +71,9 @@ def test_endpoints_reject_get(path):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("path", [
-    "/process/button1",
-    "/process/button2",
-    "/process/button3",
+    "/process/analyze",
+    "/process/rewrite",
+    "/process/report",
 ])
 def test_missing_required_fields_returns_422(path):
     r = client.post(path)
@@ -86,8 +86,8 @@ def test_missing_required_fields_returns_422(path):
 
 def test_button1_happy_path():
     expected = {"json_file": "out.json", "xlsx_file": "out.xlsx", "results": []}
-    with patch("main.run_button1", return_value=expected):
-        r = client.post("/process/button1", data=_B1_FORM, files=_B1_FILES)
+    with patch("main.analyze_policy", return_value=expected):
+        r = client.post("/process/analyze", data=_B1_FORM, files=_B1_FILES)
     assert r.status_code == 200
     assert r.json() == expected
 
@@ -97,7 +97,7 @@ def test_button1_rejects_non_xlsx_extension():
         pdf_file=("policy.pdf", FAKE_PDF, "application/pdf"),
         xlsx_file=("controls.csv", b"a,b,c", "text/csv"),
     )
-    r = client.post("/process/button1", data=_B1_FORM, files=files)
+    r = client.post("/process/analyze", data=_B1_FORM, files=files)
     assert r.status_code == 400
     assert "xlsx" in r.json()["detail"].lower()
 
@@ -106,7 +106,7 @@ def test_button1_rejects_oversized_pdf():
     big_pdf = b"%PDF" + b"x" * 20
     with patch("main.MAX_PDF_BYTES", 10):
         r = client.post(
-            "/process/button1",
+            "/process/analyze",
             data=_B1_FORM,
             files=dict(
                 pdf_file=("big.pdf", big_pdf, "application/pdf"),
@@ -124,7 +124,7 @@ def test_button1_rejects_oversized_xlsx():
     big_xlsx = b"x" * 20
     with patch("main.MAX_XLSX_BYTES", 10):
         r = client.post(
-            "/process/button1",
+            "/process/analyze",
             data=_B1_FORM,
             files=dict(
                 pdf_file=("policy.pdf", FAKE_PDF, "application/pdf"),
@@ -139,15 +139,15 @@ def test_button1_rejects_oversized_xlsx():
 
 
 def test_button1_value_error_returns_400():
-    with patch("main.run_button1", side_effect=ValueError("Invalid PDF")):
-        r = client.post("/process/button1", data=_B1_FORM, files=_B1_FILES)
+    with patch("main.analyze_policy", side_effect=ValueError("Invalid PDF")):
+        r = client.post("/process/analyze", data=_B1_FORM, files=_B1_FILES)
     assert r.status_code == 400
     assert "Invalid PDF" in r.json()["detail"]
 
 
 def test_button1_file_not_found_returns_400():
-    with patch("main.run_button1", side_effect=FileNotFoundError("missing")):
-        r = client.post("/process/button1", data=_B1_FORM, files=_B1_FILES)
+    with patch("main.analyze_policy", side_effect=FileNotFoundError("missing")):
+        r = client.post("/process/analyze", data=_B1_FORM, files=_B1_FILES)
     assert r.status_code == 400
 
 
@@ -157,22 +157,22 @@ def test_button1_file_not_found_returns_400():
 
 def test_button2_happy_path():
     expected = {"json_file": "out.json", "xlsx_file": "out.xlsx", "results": []}
-    with patch("main.run_button2", return_value=expected):
-        r = client.post("/process/button2", data=_B2_FORM)
+    with patch("main.rewrite_suggestions", return_value=expected):
+        r = client.post("/process/rewrite", data=_B2_FORM)
     assert r.status_code == 200
     assert r.json() == expected
 
 
 def test_button2_value_error_returns_400():
-    with patch("main.run_button2", side_effect=ValueError("bad filename")):
-        r = client.post("/process/button2", data=_B2_FORM)
+    with patch("main.rewrite_suggestions", side_effect=ValueError("bad filename")):
+        r = client.post("/process/rewrite", data=_B2_FORM)
     assert r.status_code == 400
     assert "bad filename" in r.json()["detail"]
 
 
 def test_button2_file_not_found_returns_400():
-    with patch("main.run_button2", side_effect=FileNotFoundError("not found")):
-        r = client.post("/process/button2", data=_B2_FORM)
+    with patch("main.rewrite_suggestions", side_effect=FileNotFoundError("not found")):
+        r = client.post("/process/rewrite", data=_B2_FORM)
     assert r.status_code == 400
 
 
@@ -182,22 +182,22 @@ def test_button2_file_not_found_returns_400():
 
 def test_button3_happy_path():
     expected = {"docx_file": "report.docx", "rows_reported": True}
-    with patch("main.run_button3", return_value=expected):
-        r = client.post("/process/button3", data=_B3_FORM)
+    with patch("main.generate_report", return_value=expected):
+        r = client.post("/process/report", data=_B3_FORM)
     assert r.status_code == 200
     assert r.json() == expected
 
 
 def test_button3_value_error_returns_400():
-    with patch("main.run_button3", side_effect=ValueError("template missing")):
-        r = client.post("/process/button3", data=_B3_FORM)
+    with patch("main.generate_report", side_effect=ValueError("template missing")):
+        r = client.post("/process/report", data=_B3_FORM)
     assert r.status_code == 400
     assert "template missing" in r.json()["detail"]
 
 
 def test_button3_file_not_found_returns_400():
-    with patch("main.run_button3", side_effect=FileNotFoundError("no file")):
-        r = client.post("/process/button3", data=_B3_FORM)
+    with patch("main.generate_report", side_effect=FileNotFoundError("no file")):
+        r = client.post("/process/report", data=_B3_FORM)
     assert r.status_code == 400
 
 
@@ -206,9 +206,9 @@ def test_button3_file_not_found_returns_400():
 # ---------------------------------------------------------------------------
 
 def test_cors_header_present_on_cross_origin_request():
-    with patch("main.run_button3", return_value={"docx_file": "r.docx", "rows_reported": False}):
+    with patch("main.generate_report", return_value={"docx_file": "r.docx", "rows_reported": False}):
         r = client.post(
-            "/process/button3",
+            "/process/report",
             data=_B3_FORM,
             headers={"Origin": "http://localhost:3000"},
         )
@@ -217,7 +217,7 @@ def test_cors_header_present_on_cross_origin_request():
 
 def test_cors_preflight_returns_200():
     r = client.options(
-        "/process/button1",
+        "/process/analyze",
         headers={
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "POST",

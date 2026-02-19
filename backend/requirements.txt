@@ -8,3 +8,4 @@ pdfplumber
 python-docx
 python-multipart
 pytest
+python-dotenv

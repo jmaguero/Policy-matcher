@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Policy Matcher</title>
   <script src="https://cdn.jsdelivr.net/npm/zod@3/lib/index.umd.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -15,24 +22,46 @@
       padding: 2rem 1rem;
     }
 
-    .container { max-width: 900px; margin: 0 auto; }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
 
-    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; color: #1a1a2e; }
-    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 0.25rem;
+      color: #1a1a2e;
+    }
 
-    h2 { font-size: 1.1rem; font-weight: 700; color: #16213e; margin-bottom: 1.25rem; }
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #16213e;
+      margin-bottom: 1.25rem;
+    }
 
     .card {
       background: white;
       border-radius: 8px;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
       border: 1px solid #e8eaed;
     }
 
-    .field { margin-bottom: 1rem; }
-    .field:last-child { margin-bottom: 0; }
+    .field {
+      margin-bottom: 1rem;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
 
     label {
       display: block;
@@ -62,7 +91,7 @@
     textarea:focus {
       outline: none;
       border-color: #0077cc;
-      box-shadow: 0 0 0 3px rgba(0,119,204,0.1);
+      box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.1);
     }
 
     textarea {
@@ -73,8 +102,14 @@
       line-height: 1.5;
     }
 
-    .row { display: flex; gap: 1rem; }
-    .row .field { flex: 1; }
+    .row {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .row .field {
+      flex: 1;
+    }
 
     details {
       border: 1px solid #dde1e7;
@@ -99,10 +134,18 @@
       transition: transform 0.2s;
     }
 
-    details[open] summary::before { content: '▼ '; }
-    details[open] summary { border-bottom: 1px solid #dde1e7; margin-bottom: 0; }
+    details[open] summary::before {
+      content: '▼ ';
+    }
 
-    .details-body { padding: 1rem; }
+    details[open] summary {
+      border-bottom: 1px solid #dde1e7;
+      margin-bottom: 0;
+    }
+
+    .details-body {
+      padding: 1rem;
+    }
 
     .btn {
       padding: 0.6rem 1.4rem;
@@ -114,13 +157,39 @@
       transition: background 0.15s, opacity 0.15s;
     }
 
-    .btn-primary { background: #0077cc; color: white; }
-    .btn-primary:hover:not(:disabled) { background: #005fa3; }
+    .btn-primary {
+      background: #0077cc;
+      color: white;
+    }
 
-    .btn-secondary { background: #4a5568; color: white; }
-    .btn-secondary:hover:not(:disabled) { background: #2d3748; }
+    .btn-primary:hover:not(:disabled) {
+      background: #005fa3;
+    }
 
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-secondary {
+      background: #4a5568;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #2d3748;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #218838;
+    }
 
     .status {
       margin-top: 1rem;
@@ -131,14 +200,37 @@
       line-height: 1.5;
     }
 
-    .status.info    { background: #e8f4fd; border-left: 4px solid #0077cc; }
-    .status.success { background: #eafaf1; border-left: 4px solid #27ae60; }
-    .status.error   { background: #fdf3f2; border-left: 4px solid #e74c3c; }
-    .status.loading { background: #f7f8fa; border-left: 4px solid #aaa; color: #555; }
+    .status.info {
+      background: #e8f4fd;
+      border-left: 4px solid #0077cc;
+    }
 
-    .divider { height: 1px; background: #e8eaed; margin: 1.5rem 0; }
+    .status.success {
+      background: #eafaf1;
+      border-left: 4px solid #27ae60;
+    }
 
-    .table-wrap { overflow-x: auto; margin-top: 1rem; }
+    .status.error {
+      background: #fdf3f2;
+      border-left: 4px solid #e74c3c;
+    }
+
+    .status.loading {
+      background: #f7f8fa;
+      border-left: 4px solid #aaa;
+      color: #555;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e8eaed;
+      margin: 1.5rem 0;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
 
     .result-table {
       width: 100%;
@@ -160,7 +252,10 @@
       white-space: nowrap;
     }
 
-    .result-table td { max-width: 320px; word-break: break-word; }
+    .result-table td {
+      max-width: 320px;
+      word-break: break-word;
+    }
 
     .badge {
       display: inline-block;
@@ -171,9 +266,20 @@
       text-transform: uppercase;
     }
 
-    .badge-yes     { background: #d4edda; color: #155724; }
-    .badge-no      { background: #f8d7da; color: #721c24; }
-    .badge-partial { background: #fff3cd; color: #856404; }
+    .badge-yes {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-no {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .badge-partial {
+      background: #fff3cd;
+      color: #856404;
+    }
 
     .step-number {
       display: inline-flex;
@@ -196,130 +302,132 @@
     }
   </style>
 </head>
+
 <body>
-<div class="container">
-  <h1>Policy Matcher</h1>
-  <p class="subtitle">Automated compliance analysis and report generation</p>
+  <div class="container">
+    <h1>Policy Matcher</h1>
+    <p class="subtitle">Automated compliance analysis and report generation</p>
 
-  <!-- ── Section 1: General Info ─────────────────────────────────── -->
-  <div class="card">
-    <div class="step-header">
-      <span class="step-number">1</span>
-      <h2 style="margin-bottom:0">General Info</h2>
-    </div>
-
-    <div class="row">
-      <div class="field">
-        <label for="client_name">Client Name</label>
-        <input type="text" id="client_name" placeholder="e.g. Acme Corp" />
+    <!-- ── Section 1: General Info ─────────────────────────────────── -->
+    <div class="card">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <h2 style="margin-bottom:0">General Info</h2>
       </div>
-      <div class="field">
-        <label for="language">Language</label>
-        <select id="language" onchange="onLanguageChange()">
-          <option value="en">English</option>
-          <option value="nl">Dutch</option>
-        </select>
-      </div>
-    </div>
 
-    <div class="field">
-      <label for="xlsx_file">Standard File (.xlsx)</label>
-      <input type="file" id="xlsx_file" accept=".xlsx" />
-    </div>
-  </div>
-
-  <!-- ── Section 2: LLM Config + Button 1 ────────────────────────── -->
-  <div class="card">
-    <div class="step-header">
-      <span class="step-number">2</span>
-      <h2 style="margin-bottom:0">Analyse Policy &mdash; Button 1</h2>
-    </div>
-
-    <details id="config1">
-      <summary>LLM Configuration</summary>
-      <div class="details-body">
+      <div class="row">
         <div class="field">
-          <label for="system_prompt1">System Prompt</label>
-          <textarea id="system_prompt1"></textarea>
+          <label for="client_name">Client Name</label>
+          <input type="text" id="client_name" placeholder="e.g. Acme Corp" />
         </div>
-        <div class="row">
-          <div class="field">
-            <label for="provider1">Provider</label>
-            <select id="provider1" onchange="updateModels(1)">
-              <option value="anthropic">Anthropic</option>
-              <option value="openai">OpenAI</option>
-              <option value="ollama">Ollama</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="model1">Model</label>
-            <select id="model1"></select>
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <div class="field">
-      <label for="pdf_file">Client Document (.pdf)</label>
-      <input type="file" id="pdf_file" accept=".pdf" />
-    </div>
-
-    <button class="btn btn-primary" id="btn1" onclick="runButton1()">
-      Run Analysis
-    </button>
-    <div class="status" id="status1"></div>
-  </div>
-
-  <!-- ── Section 3: LLM Config + Button 2 + Button 3 ─────────────── -->
-  <div class="card">
-    <div class="step-header">
-      <span class="step-number">3</span>
-      <h2 style="margin-bottom:0">Rewrite Suggestions &mdash; Button 2</h2>
-    </div>
-
-    <details id="config2">
-      <summary>LLM Configuration</summary>
-      <div class="details-body">
         <div class="field">
-          <label for="system_prompt2">System Prompt</label>
-          <textarea id="system_prompt2"></textarea>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label for="provider2">Provider</label>
-            <select id="provider2" onchange="updateModels(2)">
-              <option value="anthropic">Anthropic</option>
-              <option value="openai">OpenAI</option>
-              <option value="ollama">Ollama</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="model2">Model</label>
-            <select id="model2"></select>
-          </div>
+          <label for="language">Language</label>
+          <select id="language" onchange="onLanguageChange()">
+            <option value="en">English</option>
+            <option value="nl">Dutch</option>
+          </select>
         </div>
       </div>
-    </details>
 
-    <button class="btn btn-primary" id="btn2" onclick="runButton2()" disabled>
-      Rewrite Suggestions
-    </button>
-    <div class="status" id="status2"></div>
-
-    <div class="divider"></div>
-
-    <div class="step-header" style="margin-bottom:0.75rem">
-      <span class="step-number">4</span>
-      <h2 style="margin-bottom:0">Generate Report &mdash; Button 3</h2>
+      <div class="field">
+        <label for="xlsx_file">Standard File (.xlsx)</label>
+        <input type="file" id="xlsx_file" accept=".xlsx" />
+      </div>
     </div>
 
-    <button class="btn btn-secondary" id="btn3" onclick="runButton3()" disabled>
-      Generate Report
-    </button>
-    <div class="status" id="status3"></div>
-  </div>
-</div>
+    <!-- ── Section 2: LLM Config + Button 1 ────────────────────────── -->
+    <div class="card">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <h2 style="margin-bottom:0">Analyse Policy &mdash; Button 1</h2>
+      </div>
 
-<script src="app.js"></script>
+      <details id="config1">
+        <summary>LLM Configuration</summary>
+        <div class="details-body">
+          <div class="field">
+            <label for="system_prompt1">System Prompt</label>
+            <textarea id="system_prompt1"></textarea>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="provider1">Provider</label>
+              <select id="provider1" onchange="updateModels(1)">
+                <option value="anthropic">Anthropic</option>
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="model1">Model</label>
+              <select id="model1"></select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="field">
+        <label for="pdf_file">Client Document (.pdf)</label>
+        <input type="file" id="pdf_file" accept=".pdf" />
+      </div>
+
+      <button class="btn btn-primary" id="btn1" onclick="runAnalysis()">
+        Run Analysis
+      </button>
+      <div class="status" id="status1"></div>
+    </div>
+
+    <!-- ── Section 3: LLM Config + Button 2 + Button 3 ─────────────── -->
+    <div class="card">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <h2 style="margin-bottom:0">Rewrite Suggestions &mdash; Step 2</h2>
+      </div>
+
+      <details id="config2">
+        <summary>LLM Configuration</summary>
+        <div class="details-body">
+          <div class="field">
+            <label for="system_prompt2">System Prompt</label>
+            <textarea id="system_prompt2"></textarea>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="provider2">Provider</label>
+              <select id="provider2" onchange="updateModels(2)">
+                <option value="anthropic">Anthropic</option>
+                <option value="openai">OpenAI</option>
+                <option value="ollama">Ollama</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="model2">Model</label>
+              <select id="model2"></select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <button class="btn btn-primary" id="btn2" onclick="runRewrite()" disabled>
+        Rewrite Suggestions
+      </button>
+      <div class="status" id="status2"></div>
+
+      <div class="divider"></div>
+
+      <div class="step-header" style="margin-bottom:0.75rem">
+        <span class="step-number">4</span>
+        <h2 style="margin-bottom:0">Generate Report &mdash; Step 3</h2>
+      </div>
+
+      <button class="btn btn-secondary" id="btn3" onclick="runReport()" disabled>
+        Generate Report
+      </button>
+      <div class="status" id="status3"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
+
 </html>

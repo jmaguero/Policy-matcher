@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -22,6 +22,21 @@ def test_parse_json_fenced_with_language_tag():
 
 def test_parse_json_fenced_without_language_tag():
     text = '```\n{"key": "value"}\n```'
+    assert _parse_json(text) == {"key": "value"}
+
+
+def test_parse_json_with_preamble():
+    text = 'Here is the analysis:\n{"key": "value"}'
+    assert _parse_json(text) == {"key": "value"}
+
+
+def test_parse_json_with_postamble():
+    text = '{"key": "value"}\nHope this helps!'
+    assert _parse_json(text) == {"key": "value"}
+
+
+def test_parse_json_with_preamble_and_postamble():
+    text = 'Sure!\n{"key": "value"}\nLet me know if you need more.'
     assert _parse_json(text) == {"key": "value"}
 
 
@@ -117,3 +132,45 @@ def test_get_openai_raises_when_key_missing(monkeypatch):
     monkeypatch.setattr(llm_module, "OPENAI_API_KEY", "")
     with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
         llm_module._get_openai()
+
+
+# ---------------------------------------------------------------------------
+# SDK call shape — Anthropic
+# ---------------------------------------------------------------------------
+
+def test_anthropic_call_shape():
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value.content = [
+        MagicMock(text='{"key": "val"}')
+    ]
+    with patch("llm._get_anthropic", return_value=mock_client):
+        result = call_llm("anthropic", "claude-haiku-4-5", "system", "user")
+    mock_client.messages.create.assert_called_once_with(
+        model="claude-haiku-4-5",
+        max_tokens=1024,
+        system="system",
+        messages=[{"role": "user", "content": "user"}],
+    )
+    assert result == {"key": "val"}
+
+
+# ---------------------------------------------------------------------------
+# SDK call shape — OpenAI
+# ---------------------------------------------------------------------------
+
+def test_openai_call_shape():
+    mock_client = MagicMock()
+    mock_client.chat.completions.create.return_value.choices = [
+        MagicMock(message=MagicMock(content='{"key": "val"}'))
+    ]
+    with patch("llm._get_openai", return_value=mock_client):
+        result = call_llm("openai", "gpt-4.1", "system", "user")
+    mock_client.chat.completions.create.assert_called_once_with(
+        model="gpt-4.1",
+        max_tokens=1024,
+        messages=[
+            {"role": "system", "content": "system"},
+            {"role": "user", "content": "user"},
+        ],
+    )
+    assert result == {"key": "val"}

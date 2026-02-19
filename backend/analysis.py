@@ -13,8 +13,8 @@ OUTPUTS_DIR = Path(__file__).parent / "outputs"
 REQUIRED_KEYS = ["match", "if_yes_reason", "suggestions"]
 
 # LLM10: resource limits
-MAX_PDF_BYTES = 10 * 1024 * 1024       # 10 MB
-MAX_PDF_TEXT_CHARS = 50_000            # ~12k tokens — enough for any real policy doc
+MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_PDF_TEXT_CHARS = 50_000  # ~12k tokens — enough for any real policy doc
 
 # LLM05: output value constraints
 ALLOWED_MATCH_VALUES = {"yes", "no", "partial"}
@@ -29,7 +29,9 @@ def _sanitize(s: str) -> str:
 def _validate_pdf(pdf_bytes: bytes) -> None:
     """Reject oversized uploads and non-PDF magic bytes."""
     if len(pdf_bytes) > MAX_PDF_BYTES:
-        raise ValueError(f"PDF exceeds maximum allowed size ({MAX_PDF_BYTES // 1024 // 1024} MB)")
+        raise ValueError(
+            f"PDF exceeds maximum allowed size ({MAX_PDF_BYTES // 1024 // 1024} MB)"
+        )
     if not pdf_bytes.startswith(b"%PDF"):
         raise ValueError("Uploaded file is not a valid PDF")
 
@@ -52,7 +54,9 @@ def _read_xlsx_rows(xlsx_bytes: bytes) -> list[dict]:
         raise ValueError("Could not open the uploaded XLSX file")
     ws = wb.active
     headers = [cell.value for cell in ws[1]]
-    return [dict(zip(headers, row)) for row in ws.iter_rows(min_row=2, values_only=True)]
+    return [
+        dict(zip(headers, row)) for row in ws.iter_rows(min_row=2, values_only=True)
+    ]
 
 
 def _build_user_prompt(row: dict, pdf_text: str) -> str:
@@ -79,7 +83,7 @@ def _validate_llm_output(result: dict) -> dict:
     }
 
 
-def run_button1(
+def analyze_policy(
     pdf_bytes: bytes,
     xlsx_bytes: bytes,
     xlsx_filename: str,
@@ -105,12 +109,14 @@ def run_button1(
             required_keys=REQUIRED_KEYS,
         )
         validated = _validate_llm_output(llm_result)
-        results.append({
-            "id": row["id"],
-            "control": row["control"],
-            "selected_llm1": model,
-            **validated,
-        })
+        results.append(
+            {
+                "id": row["id"],
+                "control": row["control"],
+                "selected_llm1": model,
+                **validated,
+            }
+        )
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     standard = _sanitize(Path(xlsx_filename).stem)
