@@ -51,7 +51,9 @@ def _read_xlsx_rows(xlsx_path: Path) -> list[dict]:
         raise ValueError("Could not open the input XLSX file")
     ws = wb.active
     headers = [cell.value for cell in ws[1]]
-    return [dict(zip(headers, row)) for row in ws.iter_rows(min_row=2, values_only=True)]
+    return [
+        dict(zip(headers, row)) for row in ws.iter_rows(min_row=2, values_only=True)
+    ]
 
 
 def _parse_bullet_items(raw: object) -> list[str]:
@@ -60,7 +62,9 @@ def _parse_bullet_items(raw: object) -> list[str]:
         return []
     items = str(raw).split("\n")
     # Cap count and length (LLM05)
-    items = [_sanitize_text(item, MAX_BULLET_CHARS) for item in items if str(item).strip()]
+    items = [
+        _sanitize_text(item, MAX_BULLET_CHARS) for item in items if str(item).strip()
+    ]
     return items[:MAX_BULLET_ITEMS]
 
 
@@ -70,7 +74,7 @@ def _add_bullet(doc: Document, text: str) -> None:
     p.add_run(f"\u2022 {text}")
 
 
-def run_button3(input_xlsx_filename: str) -> dict:
+def generate_report(input_xlsx_filename: str) -> dict:
     OUTPUTS_DIR.mkdir(exist_ok=True)
 
     # Validate template exists (server-side, hardcoded — not user-supplied)
@@ -88,6 +92,7 @@ def run_button3(input_xlsx_filename: str) -> dict:
     # Track whether we've written at least one section
     wrote_any = False
 
+    processed_rows = []
     for row in rows:
         suggestions_raw = (row.get("suggestions") or "").strip()
         if not suggestions_raw:
@@ -99,16 +104,36 @@ def run_button3(input_xlsx_filename: str) -> dict:
         control = _sanitize_text(row.get("control"))
         bullet_items = _parse_bullet_items(row.get("rewritten_suggestions"))
 
+        # Store processed row for sorting/grouping
+        processed_rows.append(
+            {
+                "category": category,
+                "title": title,
+                "control": control,
+                "items": bullet_items,
+                "id": row.get("id", ""),
+            }
+        )
+
+    # Sort rows by category to ensure grouping works
+    processed_rows.sort(key=lambda x: (x["category"] or "", x["id"] or ""))
+
+    last_category = None
+
+    for row in processed_rows:
         if not wrote_any:
             # Page break before first finding — keeps cover page clean
             doc.add_page_break()
             wrote_any = True
 
-        doc.add_heading(category, level=2)
-        doc.add_heading(title, level=3)
-        doc.add_paragraph(control)
+        if row["category"] != last_category:
+            doc.add_heading(row["category"], level=2)
+            last_category = row["category"]
 
-        for item in bullet_items:
+        doc.add_heading(row["title"], level=3)
+        doc.add_paragraph(row["control"])
+
+        for item in row["items"]:
             _add_bullet(doc, item)
 
     # Derive the client+standard part from input filename to carry it forward.

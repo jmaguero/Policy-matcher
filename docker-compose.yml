@@ -4,21 +4,19 @@ services:
       context: ./backend
       dockerfile: dockerfile
     ports:
-      - "8000:8000"
+      - "8002:8000"
     env_file:
       - .env
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-<<<<<<< HEAD
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}
       - TEMPLATE_PATH=/app/documents/template_report.docx
     volumes:
       # template + standard xlsx available read-only inside the container
       - ./documents:/app/documents:ro
-      # generated outputs persisted on the host across restarts
-      # pre-create ./outputs on the host before running (mkdir -p outputs)
-      - ./outputs:/app/outputs
+      # generated outputs persisted inside Docker across restarts
+      - outputs_data:/app/outputs
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json', timeout=3)\""]
@@ -37,7 +35,6 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-=======
-      - OPENAI_API_KEY=${ANTHROPIC_API_KEY}
-      - OLLAMA_HOST=${OLLAMA_HOST:-http://localhost:11434}
->>>>>>> origin/main
+
+volumes:
+  outputs_data:

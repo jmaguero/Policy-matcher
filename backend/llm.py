@@ -37,6 +37,9 @@ def _parse_json(text: str) -> dict:
         m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
         if m:
             return json.loads(m.group(1))
+        m = re.search(r"\{.*\}", text, re.DOTALL)
+        if m:
+            return json.loads(m.group(0))
         raise
 
 
@@ -63,19 +66,28 @@ def _call_openai(model: str, system_prompt: str, user_prompt: str) -> str:
 
 
 def _call_ollama(model: str, system_prompt: str, user_prompt: str) -> str:
-    r = httpx.post(
-        f"{OLLAMA_HOST}/api/chat",
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "stream": False,
-        },
-        timeout=60,
-    )
-    r.raise_for_status()
+    if not OLLAMA_HOST:
+        raise ValueError("OLLAMA_HOST is not configured")
+    try:
+        r = httpx.post(
+            f"{OLLAMA_HOST}/api/chat",
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "stream": False,
+            },
+            timeout=60,
+        )
+        r.raise_for_status()
+    except httpx.InvalidURL:
+        raise ValueError(f"OLLAMA_HOST is not a valid URL: {OLLAMA_HOST!r}")
+    except httpx.ConnectError:
+        raise ValueError(f"Could not connect to Ollama at {OLLAMA_HOST}")
+    except httpx.HTTPStatusError as e:
+        raise ValueError(f"Ollama returned HTTP {e.response.status_code}")
     return r.json()["message"]["content"]
 
 
