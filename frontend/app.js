@@ -139,7 +139,7 @@ function onLanguageChange() {
   document.getElementById('system_prompt2').value = prompts.prompt2;
 }
 
-// ── Button 1 ──────────────────────────────────────────────────────────────────
+// ── Analysis ──────────────────────────────────────────────────────────────────
 
 async function runAnalysis() {
   const xlsxFile = document.getElementById('xlsx_file').files[0];
@@ -176,7 +176,7 @@ async function runAnalysis() {
   form.append('selected_llm1', selected_llm1);
 
   try {
-    const resp = await fetch('/process/analyze', { method: 'POST', body: form });
+    const resp = await fetch('/api/process/analyze', { method: 'POST', body: form });
     if (!resp.ok) {
       let detail = `HTTP ${resp.status}`;
       try { detail = (await resp.json()).detail || detail; } catch { }
@@ -223,7 +223,7 @@ async function runAnalysis() {
   }
 }
 
-// ── Button 2 ──────────────────────────────────────────────────────────────────
+// ── Rewrite ──────────────────────────────────────────────────────────────────
 
 async function runRewrite() {
   const parse = rewriteFormSchema.safeParse({
@@ -250,7 +250,7 @@ async function runRewrite() {
   form.append('selected_llm2', selected_llm2);
 
   try {
-    const resp = await fetch('/process/rewrite', { method: 'POST', body: form });
+    const resp = await fetch('/api/process/rewrite', { method: 'POST', body: form });
     if (!resp.ok) {
       let detail = `HTTP ${resp.status}`;
       try { detail = (await resp.json()).detail || detail; } catch { }
@@ -299,7 +299,7 @@ async function runRewrite() {
   }
 }
 
-// ── Button 3 ──────────────────────────────────────────────────────────────────
+// ── Report ──────────────────────────────────────────────────────────────────
 
 async function runReport() {
   const parse = reportFormSchema.safeParse({
@@ -320,7 +320,7 @@ async function runReport() {
   form.append('input_xlsx_filename', input_xlsx_filename);
 
   try {
-    const resp = await fetch('/process/report', { method: 'POST', body: form });
+    const resp = await fetch('/api/process/report', { method: 'POST', body: form });
     if (!resp.ok) {
       let detail = `HTTP ${resp.status}`;
       try { detail = (await resp.json()).detail || detail; } catch { }
@@ -330,7 +330,7 @@ async function runReport() {
 
     const docxFile = raw.docx_file ? ` — <code>${escHtml(raw.docx_file)}</code>` : '';
     const downloadHtml = raw.docx_file
-      ? `<br/><br/><a href="/download/${encodeURIComponent(raw.docx_file)}" class="btn btn-success" target="_blank">Download Report</a>`
+      ? `<br/><br/><a href="/api/download/${encodeURIComponent(raw.docx_file)}" class="btn btn-success" target="_blank">Download Report</a>`
       : '';
     showStatus('status3', 'success', `<strong>Report generated!</strong>${docxFile}${downloadHtml}`);
   } catch (err) {

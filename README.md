@@ -55,7 +55,7 @@ docker compose down
 
 ### Option 2: Local Development (Manual)
 
-Run the backend locally. It will also serve the frontend static files, so you don't need a separate frontend server.
+Run the backend locally with `SERVE_FRONTEND=1` so it also serves the frontend static files. The frontend uses relative `/api/` paths, so it must be served from the same origin as the backend.
 
 1.  **Install Dependencies** (Python 3.10+ required):
     ```bash
@@ -67,9 +67,10 @@ Run the backend locally. It will also serve the frontend static files, so you do
 
 2.  **Run the Server**:
     ```bash
-    # You must run from inside the backend/ directory so Python finds the modules
+    # Run from inside the backend/ directory so Python finds the modules.
+    # SERVE_FRONTEND=1 enables static file serving (local dev only).
     cd backend
-    uvicorn main:app --reload --port 8000
+    SERVE_FRONTEND=1 uvicorn main:app --reload --port 8000
     ```
 
 **Access**:

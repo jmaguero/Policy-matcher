@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,7 +36,7 @@ async def _read_limited(upload: UploadFile, max_bytes: int, label: str) -> bytes
     return data
 
 
-@app.post("/process/analyze")
+@app.post("/api/process/analyze")
 async def analyze_endpoint(
     pdf_file: UploadFile = File(...),
     xlsx_file: UploadFile = File(...),
@@ -67,7 +69,7 @@ async def analyze_endpoint(
     return result
 
 
-@app.post("/process/rewrite")
+@app.post("/api/process/rewrite")
 async def rewrite_endpoint(
     input_xlsx_filename: str = Form(...),
     system_prompt2: str = Form(...),
@@ -86,7 +88,7 @@ async def rewrite_endpoint(
     return result
 
 
-@app.post("/process/report")
+@app.post("/api/process/report")
 async def report_endpoint(
     input_xlsx_filename: str = Form(...),
 ):
@@ -97,7 +99,7 @@ async def report_endpoint(
     return result
 
 
-@app.get("/download/{filename}")
+@app.get("/api/download/{filename}")
 async def download_file(filename: str):
     # Security: Prevent path traversal
     safe_path = (OUTPUTS_DIR / filename).resolve()
@@ -114,12 +116,14 @@ async def download_file(filename: str):
     )
 
 
-# Serve frontend static files (for local dev or simple deployment)
-# This must be after API routes so it doesn't shadow them.
-frontend_path = Path(__file__).parent.parent / "frontend"
-if frontend_path.exists():
+# Local dev only: serve the frontend from FastAPI so that the relative /api/
+# calls in app.js resolve correctly without a separate proxy.
+# Requires SERVE_FRONTEND=1 AND the frontend/ directory to actually exist,
+# so this never activates inside Docker (where the dir is absent).
+_frontend_path = Path(__file__).parent.parent / "frontend"
+if os.getenv("SERVE_FRONTEND") and _frontend_path.exists():
     from fastapi.staticfiles import StaticFiles
 
     app.mount(
-        "/", StaticFiles(directory=str(frontend_path), html=True), name="frontend"
+        "/", StaticFiles(directory=str(_frontend_path), html=True), name="frontend"
     )

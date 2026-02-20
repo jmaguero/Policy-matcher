@@ -25,7 +25,7 @@ def _read_xlsx_rows(xlsx_path: Path) -> list[dict]:
 
 
 def _build_user_prompt(row: dict) -> str:
-    # LLM01: wrap the suggestions field (LLM-generated from Button 1) in
+    # LLM01: wrap the suggestions field (LLM-generated from Analyze button) in
     # explicit structural delimiters — prevents second-order prompt injection
     # when chaining LLM outputs as inputs.
     return (
